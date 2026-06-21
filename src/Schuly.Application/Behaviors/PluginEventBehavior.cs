@@ -5,7 +5,7 @@ using Schuly.Plugin.Abstractions;
 
 namespace Schuly.Application.Behaviors
 {
-    public class PluginEventBehavior<TRequest, TResponse>(IServiceProvider serviceProvider, ILogger<PluginEventBehavior<TRequest, TResponse>> logger) : IPipelineBehavior<TRequest, TResponse>
+    public class PluginEventBehavior<TRequest, TResponse>(IServiceScopeFactory scopeFactory, ILogger<PluginEventBehavior<TRequest, TResponse>> logger) : IPipelineBehavior<TRequest, TResponse>
         where TRequest : notnull, IMessage
     {
         public async ValueTask<TResponse> Handle(
@@ -21,7 +21,7 @@ namespace Schuly.Application.Behaviors
                 {
                     try
                     {
-                        using var scope = serviceProvider.CreateScope();
+                        using var scope = scopeFactory.CreateScope();
                         var handlers = scope.ServiceProvider.GetServices<IPluginEventHandler<TRequest>>();
 
                         foreach (var handler in handlers)
