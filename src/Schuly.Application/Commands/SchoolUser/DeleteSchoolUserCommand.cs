@@ -4,13 +4,14 @@ using Schuly.Application.Authorization;
 using Schuly.Application.Models;
 using Schuly.Domain.Enums;
 using Schuly.Infrastructure;
+using Schuly.Infrastructure.Services;
 
 namespace Schuly.Application.Commands.SchoolUser
 {
-    [AuthorizedRoles(Roles.Administrator)]
+    [AllowAuthenticated]
     public record DeleteSchoolUserCommand(Guid SchoolUserId) : ICommand<Result>;
 
-    public class DeleteSchoolUserCommandHandler(SchulyDbContext dbContext) : ICommandHandler<DeleteSchoolUserCommand, Result>
+    public class DeleteSchoolUserCommandHandler(SchulyDbContext dbContext, IUserService userService) : ICommandHandler<DeleteSchoolUserCommand, Result>
     {
         public async ValueTask<Result> Handle(DeleteSchoolUserCommand command, CancellationToken cancellationToken)
         {
@@ -19,6 +20,10 @@ namespace Schuly.Application.Commands.SchoolUser
 
             if (schoolUser == null)
                 return Result.Failure($"SchoolUser with ID '{command.SchoolUserId}' not found");
+
+            var currentUserId = await userService.GetCurrentUserIdAsync(cancellationToken);
+            if (!userService.IsCurrentUserAdmin() && schoolUser.ApplicationUserId != currentUserId)
+                return Result.Failure("You can only delete your own school user.");
 
             dbContext.SchoolUsers.Remove(schoolUser);
             await dbContext.SaveChangesAsync(cancellationToken);
